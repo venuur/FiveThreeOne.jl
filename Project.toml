@@ -1,0 +1,16 @@
+name = "FiveThreeOne"
+uuid = "8d201bc4-d2c7-4181-bad3-1b95454d6d02"
+authors = ["Carl Morris <carl.morris.world@outlook.com> and contributors"]
+version = "0.1.0"
+
+[deps]
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
