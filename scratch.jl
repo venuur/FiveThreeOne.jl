@@ -4,7 +4,9 @@ import FiveThreeOne
 const F = FiveThreeOne
 
 sets = [
-    F.MainLiftSet(40, 92, 5),
-    F.MainLiftSet(50, 115, 5),
-    F.MainLiftSet(60, 138, 3),
+    vcat(F.warmup_sets(215), F.deload_lifts(215)),
+    vcat(F.warmup_sets(155), F.deload_lifts(155)),
+    vcat(F.warmup_sets(240), F.deload_lifts(240)),
+    vcat(F.warmup_sets(85), F.deload_lifts(85)),
 ]
+F.print_main_lift_table(["Squat", "Bench Press", "Deadlift", "Press"], sets)
