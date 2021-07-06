@@ -29,6 +29,10 @@ function entry(s::AssistanceLift, name, sets=1)
     return (s.percentage, s.weight, sets, s.reps)
 end
 
+function print_divider(width, n_columns)
+    println(repeat("-", width*n_columns))
+end
+
 function print_main_lift_table(names, lifts::Vector{Vector{MainLift}})
     # Print header for lifts
     for name in names
@@ -38,7 +42,7 @@ function print_main_lift_table(names, lifts::Vector{Vector{MainLift}})
     print("\n")
 
     # Divide header
-    println(repeat("-", 31*length(names)))
+    print_divider(31, length(names))
 
 
     # Print rows of lift table
@@ -64,12 +68,42 @@ function print_main_lift_table(names, lifts::Vector{Vector{MainLift}})
     end
 end
 
-function print_assistance_lift_table(lifts::Vector{AssistanceLift})
-    @printf "%30s\n" "Assistance"
-    println(repeat("-", 50))
-    @printf "%20s %10s %10s %10s\n" "Name" "Weight" "Sets" "Reps"
-    for lift in lifts
-        @printf "%20s %10s %10s %10s\n" lift.name lift.weight lift.sets lift.reps
+function print_assistance_lift_table(lifts::Vector{Vector{AssistanceLift}})
+    for _ in lifts
+        @printf "%20s      " "Assistance"
+    end
+    println()
+    print_divider(31, length(lifts))
+
+    for _ in lifts
+        @printf "%14s %6s %6s  |" "Weight" "Sets" "Reps"
+    end
+    println()
+
+
+    #Print lift table entries
+    n_longest_lift = maximum([length(lift) for lift in lifts])
+    row = 1
+    while row <= n_longest_lift
+        for lift in lifts
+            if row <= length(lift)
+                entry = lift[row]
+                @printf "  %-26s  |" entry.name
+            else
+                print(repeat(" ", 26))
+            end
+        end
+        print("\n")
+        for lift in lifts
+            if row <= length(lift)
+                entry = lift[row]
+                @printf "%14d %6d %6d  |" entry.weight entry.sets entry.reps
+            else
+                print(repeat(" ", 26))
+            end
+        end
+        print("\n")
+        row += 1
     end
 end
 
