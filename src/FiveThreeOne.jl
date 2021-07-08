@@ -9,21 +9,40 @@ struct Order351 end
 struct Week1 end
 struct Week2 end
 struct Week3 end
+
+struct Reps 
+    number::Union{Int, UnitRange{Int}}
+    is_pr_set::Bool
+end
+
+Reps(number) = Reps(number, false)
+
+function Base.show(io::IO, reps::Reps)
+    if reps.number isa UnitRange{Int}
+        print(io, first(reps.number), "-", last(reps.number))
+    else
+        print(io, reps.number)
+    end
+    reps.is_pr_set && print(io, "+")
+end
     
 struct MainLift
     percentage::Float64
     weight::Float64
     sets::Int
-    reps::Int
+    reps::Reps
 end
+
+MainLift(percentage, weight, sets, reps::Int) = MainLift(percentage, weight, sets, Reps(reps))
 
 struct AssistanceLift
     name::AbstractString
     weight::Float64
     sets::Int
-    reps::Int
+    reps::Reps
 end
 
+AssistanceLift(percentage, weight, sets, reps::Int) = AssistanceLift(percentage, weight, sets, Reps(reps))
 
 function entry(s::AssistanceLift, name, sets=1)
     return (s.percentage, s.weight, sets, s.reps)
@@ -58,7 +77,7 @@ function print_main_lift_table(names, lifts::Vector{Vector{MainLift}})
         for lift in lifts
             if row <= length(lift)
                 entry = lift[row]
-                @printf "%4.0f %10.1f %6d %6d |" entry.percentage entry.weight entry.sets entry.reps
+                @printf "%4.0f %10.1f %6d %6s |" entry.percentage entry.weight entry.sets entry.reps
             else
                 print(repeat(" ", 26))
             end
@@ -97,7 +116,7 @@ function print_assistance_lift_table(lifts::Vector{Vector{AssistanceLift}})
         for lift in lifts
             if row <= length(lift)
                 entry = lift[row]
-                @printf "%14d %6d %6d  |" entry.weight entry.sets entry.reps
+                @printf "%14d %6d %6s  |" entry.weight entry.sets entry.reps
             else
                 print(repeat(" ", 26))
             end
@@ -119,7 +138,9 @@ function warmup_sets(training_max)
     return make_single_sets(percentages, weights, reps)
 end
 
-function main_lifts(training_max, week, order)
+function main_lifts(training_max, week, order, pr_sets)
+    make_pr_reps(reps) = Reps(reps, pr_sets)
+
     if order === Order351 && week === Week1
         week = Week2
     elseif order === Order351 && week === Week2
@@ -127,13 +148,13 @@ function main_lifts(training_max, week, order)
     end
     if week === Week1
         percentages = [65, 75, 85]
-        reps = [5,5,5]
+        reps = [5,5, make_pr_reps(5)]
     elseif week === Week2
         percentages = [70, 80, 90]
-        reps = [3,3,3]
+        reps = [3,3, make_pr_reps(3)]
     elseif week === Week3
         percentages = [75, 85, 95]
-        reps = [5,3,1]
+        reps = [5,3, make_pr_reps(1)]
     else
         throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
     end
