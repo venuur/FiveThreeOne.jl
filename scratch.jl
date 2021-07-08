@@ -3,13 +3,14 @@ using Revise
 import FiveThreeOne
 const F = FiveThreeOne
 
+include("training_max.jl")
 
 function deload_week()
     sets = [
-        vcat(F.warmup_sets(215), F.deload_lifts(215)),
-        vcat(F.warmup_sets(155), F.deload_lifts(155)),
-        vcat(F.warmup_sets(240), F.deload_lifts(240)),
-        vcat(F.warmup_sets(85), F.deload_lifts(85)),
+        vcat(F.warmup_sets(SQUAT), F.deload_lifts(SQUAT)),
+        vcat(F.warmup_sets(BENCH), F.deload_lifts(BENCH)),
+        vcat(F.warmup_sets(DEADLIFT), F.deload_lifts(DEADLIFT)),
+        vcat(F.warmup_sets(PRESS), F.deload_lifts(PRESS)),
     ]
     F.print_main_lift_table(["Squat", "Bench Press", "Deadlift", "Press"], sets)
     daily_assistance = [
@@ -27,8 +28,10 @@ function deload_week()
     F.print_assistance_lift_table(assistance_sets)
 end
 
-open("routine.txt", "w") do outfile
-    redirect_stdout(outfile) do 
-        deload_week()
+function write_deload_week()
+    open("routine.txt", "w") do outfile
+        redirect_stdout(outfile) do 
+            deload_week()
+        end
     end
 end
