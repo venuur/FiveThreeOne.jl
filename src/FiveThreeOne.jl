@@ -169,4 +169,8 @@ function deload_lifts(training_max)
     return make_single_sets(percentages, weights, reps)
 end
 
+e1rm(weight, reps::Int) = weight * reps * 0.0333 + weight
+e1rm(weight, reps::UnitRange{Int}) = collect(map(x -> e1rm(weight, x), reps))
+e1rm(weight, reps::Reps) = e1rm(weight, reps.number)
+
 end
