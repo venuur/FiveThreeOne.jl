@@ -34,6 +34,7 @@ struct MainLift
 end
 
 MainLift(percentage, weight, sets, reps::Int) = MainLift(percentage, weight, sets, Reps(reps))
+MainLift(percentage, weight, sets, reps::UnitRange{Int}) = MainLift(percentage, weight, sets, Reps(reps))
 
 struct AssistanceLift
     name::AbstractString
@@ -165,6 +166,28 @@ end
 function deload_lifts(training_max)
     percentages = [70, 80, 90, 100]
     reps = [5, 3, 1, 1]
+    weights = make_weights(percentages, training_max)
+    return make_single_sets(percentages, weights, reps)
+end
+
+function widowmaker(training_max, week, order)
+    if order === Order351 && week === Week1
+        week = Week2
+    elseif order === Order351 && week === Week2
+        week = Week1
+    end
+    if week === Week1
+        percentages = [65]
+        reps = [15:20]
+    elseif week === Week2
+        percentages = [70]
+        reps = [15:20]
+    elseif week === Week3
+        percentages = [75]
+        reps = [15:20]
+    else
+        throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
+    end
     weights = make_weights(percentages, training_max)
     return make_single_sets(percentages, weights, reps)
 end
