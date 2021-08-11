@@ -185,9 +185,38 @@ function main_lifts(training_max, week, order, pr_sets, e1rm_to_beat)
     return make_single_sets(percentages, weights, reps, e1rm_to_beat)
 end
 
+function main_lifts_5pro(training_max, week, order)
+    if order === Order351 && week === Week1
+        week = Week2
+    elseif order === Order351 && week === Week2
+        week = Week1
+    end
+    if week === Week1
+        percentages = [65, 75, 85]
+        reps = [5,5, 5]
+    elseif week === Week2
+        percentages = [70, 80, 90]
+        reps = [5,5, 5]
+    elseif week === Week3
+        percentages = [75, 85, 95]
+        reps = [5,5, 5]
+    else
+        throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
+    end
+    weights = make_weights(percentages, training_max)
+    return make_single_sets(percentages, weights, reps)
+end
+
 function deload_lifts(training_max)
     percentages = [70, 80, 90, 100]
     reps = [5, 3, 1, 1]
+    weights = make_weights(percentages, training_max)
+    return make_single_sets(percentages, weights, reps)
+end
+
+function training_max_test_lifts(training_max)
+    percentages = [70, 80, 90, 100]
+    reps = [5, 5, 5, 3:5]
     weights = make_weights(percentages, training_max)
     return make_single_sets(percentages, weights, reps)
 end
@@ -212,6 +241,25 @@ function widowmaker(training_max, week, order)
     end
     weights = make_weights(percentages, training_max)
     return make_single_sets(percentages, weights, reps)
+end
+
+function boringbutbig_light(training_max, week, order)
+    if order === Order351 && week === Week1
+        week = Week2
+    elseif order === Order351 && week === Week2
+        week = Week1
+    end
+    if week === Week1
+        percentages = 40
+    elseif week === Week2
+        percentages = 50
+    elseif week === Week3
+        percentages = 60
+    else
+        throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
+    end
+    weights = make_weights(percentages, training_max)
+    return MainLift(percentages, weights, 5, 10)
 end
 
 e1rm(weight, reps::Int) = weight * reps * 0.0333 + weight
