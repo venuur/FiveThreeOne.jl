@@ -1,5 +1,11 @@
 module FiveThreeOne
 
+include("TextTable.jl")
+import .TextTable
+using .TextTable
+export TextTable
+
+using Base: Float64
 using Printf:@printf
 
 export print_main_lift_table, MainLiftSet
@@ -11,7 +17,7 @@ struct Week2 end
 struct Week3 end
 
 struct Reps 
-    number::Union{Int, UnitRange{Int}}
+    number::Union{Int, UnitRange{Int}, AbstractString}
     is_pr_set::Bool
 end
 
@@ -43,12 +49,12 @@ MainLift(percentage, weight, sets, reps::UnitRange{Int}, e1rm_to_beat) = MainLif
 
 struct AssistanceLift
     name::AbstractString
-    weight::Float64
+    weight::Union{Float64, Int, String}
     sets::Int
     reps::Reps
 end
 
-AssistanceLift(percentage, weight, sets, reps::Int) = AssistanceLift(percentage, weight, sets, Reps(reps))
+AssistanceLift(percentage, weight, sets, reps::Union{Int, UnitRange{Int}, AbstractString}) = AssistanceLift(percentage, weight, sets, Reps(reps, false))
 
 function entry(s::AssistanceLift, name, sets=1)
     return (s.percentage, s.weight, sets, s.reps)
@@ -58,92 +64,96 @@ function print_divider(width, n_columns)
     println(repeat("-", width*n_columns))
 end
 
-function print_main_lift_table(names, lifts::Vector{Vector{MainLift}})
-    # Print header for lifts
-    for name in names
-        @printf "%20s" name
-        print(repeat(" ", 6+2))
-    end
-    print("\n")
-
-    # Divide header
-    print_divider(31, length(names))
-
-
-    # Print rows of lift table
-    for name in names
-        @printf "%4s %10s %6s %6s |" "%" "Weight" "Sets" "Reps"
-    end
-    print("\n")
-
-    #Print lift table entries
-    n_longest_lift = maximum([length(lift) for lift in lifts])
-    row = 1
-    while row <= n_longest_lift
-        has_pr_set = false
-        for lift in lifts
-            if row <= length(lift)
-                entry = lift[row]
-                has_pr_set = has_pr_set || entry.reps.is_pr_set
-                @printf "%4.0f %10.1f %6d %6s |" entry.percentage entry.weight entry.sets entry.reps
-            else
-                print(repeat(" ", 26))
-            end
+function make_main_lift_cell(name, lifts::Vector{MainLift})
+    header_cell = TextCell([name])
+    percentages = TextCell(vcat(
+        ["%"],
+        [string(Int(round(lift.percentage))) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    set_width!(percentages, 4)
+    weights = TextCell(vcat(
+        ["Weight"],
+        [string(lift.weight) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    sets = TextCell(vcat(
+        ["Sets"],
+        [string(lift.sets) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    reps = TextCell(vcat(
+        ["Reps"],
+        [string(lift.reps) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    lift_details = hmerge([percentages, weights, sets, reps]; sep="  ")
+    
+    # append pr details if there's a pr set
+    pr_content = AbstractString[]
+    for lift in lifts
+        if lift.reps.is_pr_set
+            pr_goal = pr_set_goal_reps(lift.weight, lift.e1rm_to_beat)
+            push!(pr_content, "$(pr_goal.reps) reps for E1RM $(pr_goal.new_e1rm)")
         end
-        if has_pr_set
-            println()
-            for lift in lifts
-                if row <= length(lift)
-                    entry = lift[row]
-                    pr_goal = pr_set_goal_reps(entry.weight, entry.e1rm_to_beat)
-                    @printf "  %6s reps for E1RM %6.1f |" pr_goal.reps pr_goal.new_e1rm
-                else
-                    print(repeat(" ", 26))
-                end
-            end
-        end
-        print("\n")
-        row += 1
     end
+    if length(pr_content) > 0
+        pr_cell = TextCell(pr_content)
+        lift_details = vmerge(lift_details, pr_cell)
+    end
+    
+    # add header to complete
+    return vmerge(header_cell, lift_details; sep="-")
 end
 
-function print_assistance_lift_table(lifts::Vector{Vector{AssistanceLift}})
-    for _ in lifts
-        @printf "%20s      " "Assistance"
-    end
-    println()
-    print_divider(31, length(lifts))
+function make_assistance_cell(lifts::Vector{AssistanceLift})
+    header_cell = TextCell(["Assistance"])
+    weights = TextCell(vcat(
+        ["Weight"],
+        [string(lift.weight) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    sets = TextCell(vcat(
+        ["Sets"],
+        [string(lift.sets) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    reps = TextCell(vcat(
+        ["Reps"],
+        [string(lift.reps) for lift in lifts]),
+        horizontal_alignment=align_right,
+        )
+    lift_details = hmerge([weights, sets, reps]; horizontal_alignment=align_right, sep="  ")
+    
+    names = TextCell([lift.name for lift in lifts])
+    assistance = interleave(lift_details, names; horizontal_alignment=align_right)
+    return vmerge(header_cell, assistance; sep="-")
+end
 
-    for _ in lifts
-        @printf "%14s %6s %6s  |" "Weight" "Sets" "Reps"
+function print_routine(
+    names::Vector{<:AbstractString},
+    main_lifts::Vector{Vector{MainLift}},
+    assistance::Vector{Vector{AssistanceLift}};
+    n_columns::Int=length(names),
+    row_sep=" ",
+    )
+    main_lift_cells = [make_main_lift_cell(name, lifts) for (name, lifts) in zip(names, main_lifts)]
+    assistance_cells = [make_assistance_cell(lifts) for lifts in assistance]
+    daily_cells = [vmerge(main, assistance; sep="=") for (main, assistance) in zip(main_lift_cells, assistance_cells)]
+    n_rows = Int(ceil(length(names) / n_columns))
+    row_cells = Vector{TextCell}(undef, n_rows)
+    groups = [(1+(i-1)*n_columns):i*n_columns for i in 1:n_rows]
+    for i in 1:n_rows
+        j1 = first(groups[i])
+        j2 = min(last(groups[i]), length(daily_cells))
+        row_cells[i] = hmerge(daily_cells[j1:j2], sep=" | ")
     end
-    println()
-
-
-    #Print lift table entries
-    n_longest_lift = maximum([length(lift) for lift in lifts])
-    row = 1
-    while row <= n_longest_lift
-        for lift in lifts
-            if row <= length(lift)
-                entry = lift[row]
-                @printf "  %-26s  |" entry.name
-            else
-                print(repeat(" ", 26))
-            end
-        end
-        print("\n")
-        for lift in lifts
-            if row <= length(lift)
-                entry = lift[row]
-                @printf "%14d %6d %6s  |" entry.weight entry.sets entry.reps
-            else
-                print(repeat(" ", 26))
-            end
-        end
-        print("\n")
-        row += 1
+    if length(row_cells) > 1
+        routine = vmerge(row_cells; sep=row_sep)
+    else
+        routine = row_cells[1]
     end
+    println(format_text(routine))
 end
 
 make_single_sets(percentages, weights, reps) = collect(map(MainLift, percentages, weights, repeat([1], length(percentages)), reps))
