@@ -56,12 +56,48 @@ end
 
 AssistanceLift(percentage, weight, sets, reps::Union{Int, UnitRange{Int}, AbstractString}) = AssistanceLift(percentage, weight, sets, Reps(reps, false))
 
-function entry(s::AssistanceLift, name, sets=1)
-    return (s.percentage, s.weight, sets, s.reps)
-end
+function make_routine(training_maxes, supplemental, order, assistance, e1rm_for_pr=nothing; print_config=nothing)
+    active_print_config = Dict(
+        :number_columns => 4,
+    )
+    if print_config !== nothing
+        for k in keys(active_print_config)
+            if haskey(print_config, k)
+                active_print_config[k] = print_config[k]
+            end
+        end
+    end
+    names = Vector{AbstractString}
+    lifts = Vector{MainLift}
+    assistance_lifts = Vector{AssistanceLift}
 
-function print_divider(width, n_columns)
-    println(repeat("-", width*n_columns))
+    if e1rm_for_pr === nothing
+        e1rm_for_pr = repeat([nothing], length(training_maxes))
+        has_pr_sets = false
+    else
+        has_pr_sets = true
+    end
+
+    function _print_routine(week)
+        names = [n for (n, _) in training_maxes]
+        main_sets = [
+            vcat(warmup_sets(tm),
+                 main_lifts(tm, week, order, has_pr_sets, lift_e1rm),
+                 supplemental(tm, week, order))
+            for ((_, tm), lift_e1rm) in zip(training_maxes, e1rm_for_pr)
+        ]
+        assistance_sets = [
+            [AssistanceLift(each_lift...) for each_lift in daily_assistance]
+            for daily_assistance in assistance
+        ]
+        print_routine(
+            names,
+            main_sets,
+            assistance_sets,
+            n_columns=active_print_config[:number_columns])
+    end
+
+    return _print_routine
 end
 
 function make_main_lift_cell(name, lifts::Vector{MainLift})

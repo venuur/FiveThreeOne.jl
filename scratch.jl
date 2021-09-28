@@ -123,47 +123,46 @@ function write_anchor_week(week)
     end
 end
 
-function leader_week(week)
-    sets = [
-        vcat(F.warmup_sets(SQUAT), F.main_lifts_5pro(SQUAT, week, F.Order351), F.boringbutbig_light(SQUAT, week, F.Order351)),
-        vcat(F.warmup_sets(BENCH), F.main_lifts_5pro(BENCH, week, F.Order351), F.boringbutbig_light(BENCH, week, F.Order351)),
-        vcat(F.warmup_sets(DEADLIFT), F.main_lifts_5pro(DEADLIFT, week, F.Order351), F.boringbutbig_light(DEADLIFT, week, F.Order351)),
-        vcat(F.warmup_sets(PRESS), F.main_lifts_5pro(PRESS, week, F.Order351), F.boringbutbig_light(PRESS, week, F.Order351)),
-        vcat(F.warmup_sets(ROW), F.main_lifts_5pro(ROW, week, F.Order351), F.boringbutbig_light(ROW, week, F.Order351)),
-    ]
-    assistance_sets = [
+leader_week_bbb = F.make_routine(
+    ["Squat" => SQUAT,
+     "Bench" => BENCH,
+     "Deadlift" => DEADLIFT,
+     "Press" => PRESS,
+     "Row" => ROW],
+     F.boringbutbig_light,
+     F.Order351,
+     [
         [
-        F.AssistanceLift("Hanging Leg Raise", 0, 6, 5),
-        F.AssistanceLift("French Press", 15, 4, 12),
-        F.AssistanceLift("DB Kroc Row", 40, 4, 8),
-    ],
+            ("Hanging Leg Raise", 0, 6, 5),
+            ("French Press", 15, 4, 12),
+            ("DB Kroc Row", 40, 4, 8),
+        ],
+            [
+            ("Ab Wheel", 0, 5, 5),
+            ("DB Press", 15, 4, 12),
+            ("Chin-Up", 0, 10, 3),
+        ],
+            [
+            ("Side Plank", 0, 5, 30),
+            ("Push-Up", 0, 6, 10),
+            ("Face Pull", "yellow", 6, 12),
+        ],
         [
-        F.AssistanceLift("Ab Wheel", 0, 5, 5),
-        F.AssistanceLift("DB Press", 15, 4, 12),
-        F.AssistanceLift("Chin-Up", 0, 10, 3),
-    ],
+            ("Palloff Press", "blue", 5, 30),
+            ("Lat Raise", 10, 4, 10),
+            ("Inverted Row", 0, 6, 10),
+        ],
         [
-        F.AssistanceLift("Side Plank", 0, 5, 30),
-        F.AssistanceLift("Push-Up", 0, 6, 10),
-        F.AssistanceLift("Face Pull", "yellow", 6, 12),
+            ("KB Swing", 35, 4, 10),
+            ("KB Swing", 53, 6, 10),
+        ],
     ],
-    [
-        F.AssistanceLift("Palloff Press", "blue", 5, 30),
-        F.AssistanceLift("Lat Raise", 10, 4, 10),
-        F.AssistanceLift("Inverted Row", 0, 6, 10),
-    ],
-    [
-        F.AssistanceLift("KB Swing", 35, 4, 10),
-        F.AssistanceLift("KB Swing", 53, 6, 10),
-    ]
-    ]
-    F.print_routine(["Squat", "Bench Press", "Deadlift", "Press", "Row"], sets, assistance_sets, n_columns=4)
-end
+)
 
-function write_leader_week(week)
+function write_leader_week_bbb(week)
     open("routine.txt", "w") do outfile
         redirect_stdout(outfile) do 
-            leader_week(week)
+            leader_week_bbb(week)
         end
     end
 end
