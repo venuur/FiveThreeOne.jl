@@ -1,4 +1,0 @@
-const SQUAT_1RM = 262.5
-const BENCH_1RM = 196
-const DEADLIFT_1RM = 291.6
-const PRESS_1RM = 105

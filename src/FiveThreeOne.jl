@@ -78,11 +78,16 @@ function make_routine(training_maxes, supplemental, order, assistance, e1rm_for_
         has_pr_sets = true
     end
 
-    function _print_routine(week)
+    function _print_routine(week; fives_progression=false)
         names = [n for (n, _) in training_maxes]
+        if fives_progression
+            _main = ((tm, week) -> main_lifts_5pro(tm, week, order))
+        else
+            _main = ((tm, week) -> main_lifts(tm, week, order, has_pr_sets, e1rm_to_beat))
+        end
         main_sets = [
             vcat(warmup_sets(tm),
-                 main_lifts(tm, week, order, has_pr_sets, lift_e1rm),
+                 _main(tm, week),
                  supplemental(tm, week, order))
             for ((_, tm), lift_e1rm) in zip(training_maxes, e1rm_for_pr)
         ]
