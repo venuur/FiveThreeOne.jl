@@ -1,0 +1,10 @@
+training:
+  Squat: 210
+  Bench: 155
+  Deadlift: 265
+  Press: 85
+e1rm:
+  Squat: 264.6
+  Bench: 198.9
+  Deadlift: 335.8
+  Press: 108.0

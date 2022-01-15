@@ -8,6 +8,8 @@ export TextTable
 using Base: Float64
 using Printf:@printf
 
+import YAML
+
 export print_main_lift_table, MainLiftSet
 
 struct Order531 end
@@ -55,6 +57,47 @@ struct AssistanceLift
 end
 
 AssistanceLift(percentage, weight, sets, reps::Union{Int, UnitRange{Int}, AbstractString}) = AssistanceLift(percentage, weight, sets, Reps(reps, false))
+
+function routine_from_file(; days, main_lifts, maxes_file, assistance_file, order, print_config=nothing)
+    function _routine_for_week(week)
+        active_print_config = Dict(
+            :number_columns => 4,
+        )
+        if print_config !== nothing
+            for k in keys(active_print_config)
+                if haskey(print_config, k)
+                    active_print_config[k] = print_config[k]
+                end
+            end
+        end
+        maxes_data = YAML.load_file(maxes_file)
+        assistance_data = YAML.load_file(assistance_file)
+
+        main_sets = Vector{FiveThreeOne.MainLift}[]
+        assistance_sets = Vector{FiveThreeOne.AssistanceLift}[]
+        for day in days
+            day_mains = Vector{MainLift}[]
+            push!(day_mains, warmup_sets(maxes_data["training"][day]))
+            for lift in main_lifts
+                push!(day_mains, lift(maxes_data, day, week, order))
+            end
+            day_mains = vcat(day_mains...)
+            @show day_mains
+            push!(main_sets, day_mains)
+            day_assistance = AssistanceLift[]
+            for lift in assistance_data[day]
+                push!(day_assistance, AssistanceLift(lift...))
+            end
+            push!(assistance_sets, day_assistance)
+        end
+        print_routine(
+            days,
+            main_sets,
+            assistance_sets,
+            n_columns=active_print_config[:number_columns])
+    end
+    return _routine_for_week
+end
 
 function make_routine(training_maxes, supplemental, order, assistance, e1rm_for_pr=nothing; print_config=nothing)
     active_print_config = Dict(
@@ -310,7 +353,7 @@ function boringbutbig_light(training_max, week, order)
         throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
     end
     weights = make_weights(percentages, training_max)
-    return MainLift(percentages, weights, 5, 10)
+    return [MainLift(percentages, weights, 5, 10)]
 end
 
 e1rm(weight, reps::Int) = weight * reps * 0.0333 + weight
