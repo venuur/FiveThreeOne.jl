@@ -1,0 +1,9 @@
+Squat:
+  - ["DB Row", 40, 5, 8]
+  - ["Face Pulls", "Yellow", 3, 15]
+Deadlift:
+  - ["Inv. Row", 0, 5, 10]
+  - ["Push Ups", 0, 3, 10]
+Bench:
+  - ["BSS", 0, 5, 10]
+  - ["Leg Raises", 0, 3, 12]

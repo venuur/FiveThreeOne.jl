@@ -23,5 +23,53 @@ bbb = F.routine_from_file(
     order=F.Order351,
 )
 
-bbb(F.Week2)
+bbb(F.Week3)
 
+GZCL_T3 = "gzcl_t3.yaml"
+GZCL_T2_MAP = Dict(
+    "Squat" => "Bench",
+    "Deadlift" => "Press",
+    "Bench" => "Squat",
+)
+gzcl_t1(maxes_data, day, week, order) = F.gzcl_t1(maxes_data["training"][day], week, order)
+gzcl_t2(maxes_data, day, week, order) = F.gzcl_t2(maxes_data["training"][GZCL_T2_MAP[day]], week, order)
+
+gzcl_3day = F.routine_from_file(
+    days=["Squat", "Deadlift",  "Bench"],
+    main_lifts=[
+        gzcl_t1,
+    ],
+    secondary_names=["Bench", "Press", "Squat"],
+    secondary_lifts=[
+        gzcl_t2,
+    ],
+    maxes_file=MAXES_FILE,
+    assistance_file=GZCL_T3,
+    order=F.Order351,
+)
+
+gzcl_3day(F.Week1)
+
+
+
+GZCL_TM = "maxes_rippler.yaml"
+GZCL_T3 = "gzcl_t3.yaml"
+
+gzcl_rippler_t1(maxes_data, day, week, order) = F.gzcl_the_rippler_t1(maxes_data["training"]["t1"][day], week)
+gzcl_rippler_t2(maxes_data, day, week, order) = F.gzcl_the_rippler_t2(maxes_data["training"]["t2"][GZCL_T2_MAP[day]], week)
+
+gzcl_3day_rippler = F.routine_from_file(
+    days=["Squat", "Deadlift",  "Bench"],
+    main_lifts=[
+        gzcl_rippler_t1,
+    ],
+    secondary_names=["Bench", "Press", "Squat"],
+    secondary_lifts=[
+        gzcl_rippler_t2,
+    ],
+    maxes_file=GZCL_TM,
+    assistance_file=GZCL_T3,
+    order=F.Order351,
+)
+
+gzcl_3day_rippler(F.Week12)

@@ -17,6 +17,15 @@ struct Order351 end
 struct Week1 end
 struct Week2 end
 struct Week3 end
+struct Week4 end
+struct Week5 end
+struct Week6 end
+struct Week7 end
+struct Week8 end
+struct Week9 end
+struct Week10 end
+struct Week11 end
+struct Week12 end
 
 struct Reps 
     number::Union{Int, UnitRange{Int}, AbstractString}
@@ -58,7 +67,10 @@ end
 
 AssistanceLift(percentage, weight, sets, reps::Union{Int, UnitRange{Int}, AbstractString}) = AssistanceLift(percentage, weight, sets, Reps(reps, false))
 
-function routine_from_file(; days, main_lifts, maxes_file, assistance_file, order, print_config=nothing)
+function routine_from_file(; days, main_lifts, maxes_file, assistance_file, order, secondary_names=nothing, secondary_lifts=nothing, print_config=nothing)
+    if secondary_names === nothing
+        secondary_names = Vector{AbstractString}[]
+    end
     function _routine_for_week(week)
         active_print_config = Dict(
             :number_columns => 4,
@@ -74,16 +86,29 @@ function routine_from_file(; days, main_lifts, maxes_file, assistance_file, orde
         assistance_data = YAML.load_file(assistance_file)
 
         main_sets = Vector{FiveThreeOne.MainLift}[]
+        secondary_sets = Vector{FiveThreeOne.MainLift}[]
         assistance_sets = Vector{FiveThreeOne.AssistanceLift}[]
         for day in days
             day_mains = Vector{MainLift}[]
-            push!(day_mains, warmup_sets(maxes_data["training"][day]))
             for lift in main_lifts
                 push!(day_mains, lift(maxes_data, day, week, order))
             end
             day_mains = vcat(day_mains...)
             @show day_mains
             push!(main_sets, day_mains)
+
+            if secondary_lifts !== nothing
+                day_secondaries = Vector{MainLift}[]
+                for lift in secondary_lifts
+                    day_lift = lift(maxes_data, day, week, order)
+                    if length(day_lift) > 0
+                        push!(day_secondaries, day_lift)
+                    end
+                end
+                day_secondaries = vcat(day_secondaries...)
+                @show day_secondaries
+                push!(secondary_sets, day_secondaries)
+            end
             day_assistance = AssistanceLift[]
             for lift in assistance_data[day]
                 push!(day_assistance, AssistanceLift(lift...))
@@ -93,6 +118,8 @@ function routine_from_file(; days, main_lifts, maxes_file, assistance_file, orde
         print_routine(
             days,
             main_sets,
+            secondary_names,
+            secondary_sets,
             assistance_sets,
             n_columns=active_print_config[:number_columns])
     end
@@ -149,6 +176,9 @@ function make_routine(training_maxes, supplemental, order, assistance, e1rm_for_
 end
 
 function make_main_lift_cell(name, lifts::Vector{MainLift})
+    if length(lifts) == 0
+        return TextCell(["No Secondary"])
+    end
     header_cell = TextCell([name])
     percentages = TextCell(vcat(
         ["%"],
@@ -177,6 +207,9 @@ function make_main_lift_cell(name, lifts::Vector{MainLift})
     pr_content = AbstractString[]
     for lift in lifts
         if lift.reps.is_pr_set
+            if lift.e1rm_to_beat === nothing
+                continue
+            end
             pr_goal = pr_set_goal_reps(lift.weight, lift.e1rm_to_beat)
             push!(pr_content, "$(pr_goal.reps) reps for E1RM $(pr_goal.new_e1rm)")
         end
@@ -217,12 +250,18 @@ end
 function print_routine(
     names::Vector{<:AbstractString},
     main_lifts::Vector{Vector{MainLift}},
+    secondary_names::Vector{<:AbstractString},
+    secondary_lifts::Vector{Vector{MainLift}},
     assistance::Vector{Vector{AssistanceLift}};
     n_columns::Int=length(names),
     row_sep=" ",
     )
     main_lift_cells = [make_main_lift_cell(name, lifts) for (name, lifts) in zip(names, main_lifts)]
+    secondary_lift_cells = [make_main_lift_cell(name, lifts) for (name, lifts) in zip(secondary_names, secondary_lifts)] 
     assistance_cells = [make_assistance_cell(lifts) for lifts in assistance]
+    if length(secondary_lift_cells) > 0
+        main_lift_cells = [vmerge(main, secondary; sep="=") for (main, secondary) in zip(main_lift_cells, secondary_lift_cells)]
+    end
     daily_cells = [vmerge(main, assistance; sep="=") for (main, assistance) in zip(main_lift_cells, assistance_cells)]
     n_rows = Int(ceil(length(names) / n_columns))
     row_cells = Vector{TextCell}(undef, n_rows)
@@ -245,6 +284,7 @@ function make_single_sets(percentages, weights, reps, e1rm_to_beat)
     collect(map(MainLift, percentages, weights, repeat([1], length(percentages)), reps, repeat([e1rm_to_beat], length(percentages))))
 end
 round_to_half_pound(x) = round(x * 2, RoundNearest) / 2
+make_weight(percentage, training_max) = round_to_half_pound(percentage / 100 * training_max)
 make_weights(percentages, training_max) = round_to_half_pound.(percentages / 100 .* training_max)
 
 
@@ -370,6 +410,156 @@ function pr_set_goal_reps(pr_set_weight, e1rm_to_beat)
     e1rm_above_goal = e1rm(pr_set_weight, rep_range) .>= e1rm_to_beat
     goal_reps = collect(rep_range)[e1rm_above_goal][1]
     return PRGoal(Reps(goal_reps), e1rm(pr_set_weight, goal_reps))
+end
+
+function gzcl_t1(training_max, week, order)
+    if order === Order351 && week === Week1
+        week = Week2
+    elseif order === Order351 && week === Week2
+        week = Week1
+    end
+    if week === Week1
+        percentages = [65, 75, 85]
+        reps = [5, 5, 5]
+    elseif week === Week2
+        percentages = [70, 80, 90]
+        reps = [5,5, 5]
+    elseif week === Week3
+        percentages = [75, 85, 95]
+        reps = [5,5, 5]
+    else
+        throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
+    end
+    weights = make_weights(percentages, training_max)
+    return [
+        MainLift(percentages[1], weights[1], 1, 3),
+        MainLift(percentages[2], weights[2], 1, 3),
+        MainLift(percentages[3], weights[3], 5, 3)
+    ]
+end
+
+
+function gzcl_t2(training_max, week, order)
+    if order === Order351 && week === Week1
+        week = Week2
+    elseif order === Order351 && week === Week2
+        week = Week1
+    end
+    if week === Week1
+        percentages = [65, 75, 85]
+        reps = [5, 5, 5]
+    elseif week === Week2
+        percentages = [70, 80, 90]
+        reps = [5,5, 5]
+    elseif week === Week3
+        percentages = [75, 85, 95]
+        reps = [5,5, 5]
+    else
+        throw(DomainError("Argument `week` must be Week1, Week2, or Week3."))
+    end
+    weights = make_weights(percentages, training_max)
+    return [
+        MainLift(percentages[1], weights[1], 3, 8)
+    ]
+end
+
+function warmup_percentages(warmup_start, top_set) 
+    percentages = collect(range(warmup_start, top_set, length=6))
+    return percentages[1:5]
+end
+round_to_five_pounds(x) = round(x * .2, RoundNearest) / 0.2
+make_warmup_weights(percentages, training_max) = round_to_five_pounds.(percentages / 100 .* training_max)
+
+gzcl_spec(pct, reps, sets, is_pr_set=false) = (percentage=pct, reps=Reps(reps, is_pr_set), sets=sets)
+
+GZCL_RIPPLER_T1_SPEC = Dict(
+    Week1 => gzcl_spec(85, 5, 3),
+    Week2 => gzcl_spec(90, 3, 4, true),
+    Week3 => gzcl_spec(87.5, 4, 3),
+    Week4 => gzcl_spec(92.5, 2, 5),
+    Week5 => gzcl_spec(90, 4, 3, true),
+    Week6 => gzcl_spec(95, 2, 4),
+    Week7 => gzcl_spec(92.5, 3, 3),
+    Week8 => gzcl_spec(97.5, 1, 9, true),
+    Week9 => gzcl_spec(95, 2, 3, true),
+    Week10 => gzcl_spec(100, 1, 1, true),
+    Week11 => gzcl_spec(90, 2, 4, true),
+    # Week 12 is TM test day
+)
+
+GZCL_RIPPLER_T2_SPEC = Dict(
+    Week1 => gzcl_spec(80, 6, 5),
+    Week2 => gzcl_spec(85, 5, 5),
+    Week3 => gzcl_spec(90, 4, 5, true),
+    Week4 => gzcl_spec(82.5, 6, 4),
+    Week5 => gzcl_spec(87.5, 5, 4),
+    Week6 => gzcl_spec(92.5, 4, 4, true),
+    Week7 => gzcl_spec(85, 6, 3),
+    Week8 => gzcl_spec(90, 5, 3),
+    Week9 => gzcl_spec(95, 4, 3, true),
+    Week10 => gzcl_spec(100, 3, 5, true),
+    # No T2 Weeks 11 or 12
+)
+
+function gzcl_the_rippler_t1(training_max, week)
+    if week == Week12
+        return gzcl_the_rippler_tm_test(training_max)
+    end
+    topset_spec = GZCL_RIPPLER_T1_SPEC[week]
+    warmup_set_percentages = warmup_percentages(40, topset_spec.percentage)
+    warmup_set_weights = make_warmup_weights(warmup_set_percentages, training_max)
+    topset_weight = make_weight(topset_spec.percentage, training_max)
+    reps = [5, 5, 5, 3, 3]
+    @show sets = make_single_sets(warmup_set_percentages, warmup_set_weights, reps)
+    push!(sets, MainLift(topset_spec.percentage, topset_weight, topset_spec.sets, topset_spec.reps))
+    return sets
+end
+
+
+function gzcl_the_rippler_tm_test(training_max)
+    warmup_set_percentages = warmup_percentages(40, 90)
+    warmup_set_weights = make_warmup_weights(warmup_set_percentages, training_max)
+    reps = [5, 5, 5, 3, 3]
+    topset_pct = [90, 95, 100]
+    topset_weights = make_weights(topset_pct, training_max)
+    topset_reps = [3, 2, 1]
+    topset_sets = [1, 1, 3]
+    topset_ispr = [false, false, true]
+    sets = make_single_sets(warmup_set_percentages, warmup_set_weights, reps)
+    return vcat(sets, [
+        MainLift(pct, w, s, Reps(r, ispr))
+        for (pct, w, s, r, ispr) in zip(
+            topset_pct,
+            topset_weights,
+            topset_sets,
+            topset_reps,
+            topset_ispr,
+        )
+    ])
+end
+
+function gzcl_the_rippler_t2(training_max, week)
+    if week in (Week11, Week12)
+        return []
+    end
+    topset_spec = GZCL_RIPPLER_T2_SPEC[week]
+    weight = make_weight(topset_spec.percentage, training_max)
+    return [MainLift(topset_spec.percentage, weight, topset_spec.sets, topset_spec.reps)]
+end
+
+function gzcl_the_rippler_t3(names, weights, week)
+    if week in (Week1, Week2, Week3)
+        sets = 5
+    elseif week in (Week4, Week5, Week6)
+        sets = 4
+    elseif week in (Week7, Week8, Week9)
+        sets = 3
+    elseif week in (Week10,)
+        sets = 2
+    elseif week in (Week11, Week12)
+        return []
+    end
+    return [AssistanceLift(name, weight, sets, Reps(10, true)) for (name, weight) in zip(names, weights)]
 end
 
 end
