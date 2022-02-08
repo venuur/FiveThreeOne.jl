@@ -67,66 +67,8 @@ end
 
 AssistanceLift(percentage, weight, sets, reps::Union{Int, UnitRange{Int}, AbstractString}) = AssistanceLift(percentage, weight, sets, Reps(reps, false))
 
-function routine_from_file(; days, main_lifts, maxes_file, assistance_file, order, secondary_names=nothing, secondary_lifts=nothing, print_config=nothing)
-    if secondary_names === nothing
-        secondary_names = Vector{AbstractString}[]
-    end
-    function _routine_for_week(week)
-        active_print_config = Dict(
-            :number_columns => 4,
-        )
-        if print_config !== nothing
-            for k in keys(active_print_config)
-                if haskey(print_config, k)
-                    active_print_config[k] = print_config[k]
-                end
-            end
-        end
-        maxes_data = YAML.load_file(maxes_file)
-        assistance_data = YAML.load_file(assistance_file)
 
-        main_sets = Vector{FiveThreeOne.MainLift}[]
-        secondary_sets = Vector{FiveThreeOne.MainLift}[]
-        assistance_sets = Vector{FiveThreeOne.AssistanceLift}[]
-        for day in days
-            day_mains = Vector{MainLift}[]
-            for lift in main_lifts
-                push!(day_mains, lift(maxes_data, day, week, order))
-            end
-            day_mains = vcat(day_mains...)
-            @show day_mains
-            push!(main_sets, day_mains)
-
-            if secondary_lifts !== nothing
-                day_secondaries = Vector{MainLift}[]
-                for lift in secondary_lifts
-                    day_lift = lift(maxes_data, day, week, order)
-                    if length(day_lift) > 0
-                        push!(day_secondaries, day_lift)
-                    end
-                end
-                day_secondaries = vcat(day_secondaries...)
-                @show day_secondaries
-                push!(secondary_sets, day_secondaries)
-            end
-            day_assistance = AssistanceLift[]
-            for lift in assistance_data[day]
-                push!(day_assistance, AssistanceLift(lift...))
-            end
-            push!(assistance_sets, day_assistance)
-        end
-        print_routine(
-            days,
-            main_sets,
-            secondary_names,
-            secondary_sets,
-            assistance_sets,
-            n_columns=active_print_config[:number_columns])
-    end
-    return _routine_for_week
-end
-
-function make_routine(training_maxes, supplemental, order, assistance, e1rm_for_pr=nothing; print_config=nothing)
+function parse_print_config(print_config)
     active_print_config = Dict(
         :number_columns => 4,
     )
@@ -137,42 +79,54 @@ function make_routine(training_maxes, supplemental, order, assistance, e1rm_for_
             end
         end
     end
-    names = Vector{AbstractString}
-    lifts = Vector{MainLift}
-    assistance_lifts = Vector{AssistanceLift}
+    return active_print_config
+end
 
-    if e1rm_for_pr === nothing
-        e1rm_for_pr = repeat([nothing], length(training_maxes))
-        has_pr_sets = false
+function make_routine_printer(routine_data, mains_functions, assistance_function; print_config=nothing)
+    function _routine_for_week(week)
+        print_config = parse_print_config(print_config)
+        routine_lifts = [
+            (
+                mains=[(name=data.name, lifts=main_function(data, week)) for (data, main_function) in zip(day_data.mains, mains_functions)],
+                assistance=[assistance_function(data, week) for data in day_data.assistance],
+            )
+            for day_data in routine_data
+        ]
+        day_cells = [
+            vcat(
+                [make_main_lift_cell(main.name, main.lifts) for main in routine_day.mains]...,
+                make_assistance_cell(routine_day.assistance),
+            )
+            for routine_day in routine_lifts
+        ]
+        @show day_cells
+        print_day_cells(
+            day_cells,
+            print_config[:number_columns],
+        )
+    end
+end
+
+function print_day_cells(
+    day_cells::Vector{Vector{TextCell}},
+    n_columns::Int=length(names),
+    row_sep=" ",
+    )
+    day_single_cells = [vmerge(cells; sep="=") for cells in day_cells]
+    n_rows = Int(ceil(length(day_cells) / n_columns))
+    row_cells = Vector{TextCell}(undef, n_rows)
+    groups = [(1+(i-1)*n_columns):i*n_columns for i in 1:n_rows]
+    for i in 1:n_rows
+        j1 = first(groups[i])
+        j2 = min(last(groups[i]), length(day_single_cells))
+        row_cells[i] = hmerge(day_single_cells[j1:j2], sep=" | ")
+    end
+    if length(row_cells) > 1
+        routine = vmerge(row_cells; sep=row_sep)
     else
-        has_pr_sets = true
+        routine = row_cells[1]
     end
-
-    function _print_routine(week; fives_progression=false)
-        names = [n for (n, _) in training_maxes]
-        if fives_progression
-            _main = ((tm, week) -> main_lifts_5pro(tm, week, order))
-        else
-            _main = ((tm, week) -> main_lifts(tm, week, order, has_pr_sets, e1rm_to_beat))
-        end
-        main_sets = [
-            vcat(warmup_sets(tm),
-                 _main(tm, week),
-                 supplemental(tm, week, order))
-            for ((_, tm), lift_e1rm) in zip(training_maxes, e1rm_for_pr)
-        ]
-        assistance_sets = [
-            [AssistanceLift(each_lift...) for each_lift in daily_assistance]
-            for daily_assistance in assistance
-        ]
-        print_routine(
-            names,
-            main_sets,
-            assistance_sets,
-            n_columns=active_print_config[:number_columns])
-    end
-
-    return _print_routine
+    println(format_text(routine))
 end
 
 function make_main_lift_cell(name, lifts::Vector{MainLift})
@@ -245,38 +199,6 @@ function make_assistance_cell(lifts::Vector{AssistanceLift})
     names = TextCell([lift.name for lift in lifts])
     assistance = interleave(lift_details, names; horizontal_alignment=align_right)
     return vmerge(header_cell, assistance; sep="-")
-end
-
-function print_routine(
-    names::Vector{<:AbstractString},
-    main_lifts::Vector{Vector{MainLift}},
-    secondary_names::Vector{<:AbstractString},
-    secondary_lifts::Vector{Vector{MainLift}},
-    assistance::Vector{Vector{AssistanceLift}};
-    n_columns::Int=length(names),
-    row_sep=" ",
-    )
-    main_lift_cells = [make_main_lift_cell(name, lifts) for (name, lifts) in zip(names, main_lifts)]
-    secondary_lift_cells = [make_main_lift_cell(name, lifts) for (name, lifts) in zip(secondary_names, secondary_lifts)] 
-    assistance_cells = [make_assistance_cell(lifts) for lifts in assistance]
-    if length(secondary_lift_cells) > 0
-        main_lift_cells = [vmerge(main, secondary; sep="=") for (main, secondary) in zip(main_lift_cells, secondary_lift_cells)]
-    end
-    daily_cells = [vmerge(main, assistance; sep="=") for (main, assistance) in zip(main_lift_cells, assistance_cells)]
-    n_rows = Int(ceil(length(names) / n_columns))
-    row_cells = Vector{TextCell}(undef, n_rows)
-    groups = [(1+(i-1)*n_columns):i*n_columns for i in 1:n_rows]
-    for i in 1:n_rows
-        j1 = first(groups[i])
-        j2 = min(last(groups[i]), length(daily_cells))
-        row_cells[i] = hmerge(daily_cells[j1:j2], sep=" | ")
-    end
-    if length(row_cells) > 1
-        routine = vmerge(row_cells; sep=row_sep)
-    else
-        routine = row_cells[1]
-    end
-    println(format_text(routine))
 end
 
 make_single_sets(percentages, weights, reps) = collect(map(MainLift, percentages, weights, repeat([1], length(percentages)), reps))
@@ -547,7 +469,7 @@ function gzcl_the_rippler_t2(training_max, week)
     return [MainLift(topset_spec.percentage, weight, topset_spec.sets, topset_spec.reps)]
 end
 
-function gzcl_the_rippler_t3(names, weights, week)
+function gzcl_the_rippler_t3(name, weight, week)
     if week in (Week1, Week2, Week3)
         sets = 5
     elseif week in (Week4, Week5, Week6)
@@ -559,7 +481,7 @@ function gzcl_the_rippler_t3(names, weights, week)
     elseif week in (Week11, Week12)
         return []
     end
-    return [AssistanceLift(name, weight, sets, Reps(10, true)) for (name, weight) in zip(names, weights)]
+    return AssistanceLift(name, weight, sets, Reps(10, true))
 end
 
 end

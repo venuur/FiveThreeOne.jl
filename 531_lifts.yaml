@@ -1,0 +1,39 @@
+- mains:
+    - name: Squat
+      training_max: 210
+      e1rm: 264.6
+  assistance:
+    - ["Push Ups", 0, 5, 10]
+    - ["Chin Ups", 0, 4, 3]
+    - ["Chin Ups", 0, 1, 4]
+    - ["Face Pulls", "Yellow", 3, 15]
+    - ["Leg Raise", 0, 4, 12]
+- mains:
+    - name: Bench
+      training_max: 155
+      e1rm: 198.9
+  assistance:
+    - ["Lat Raise", 10, 4, 12]
+    - ["Chin Ups", 0, 4, 3]
+    - ["Chin Ups", 0, 1, 4]
+    - ["Face Pulls", "Yellow", 3, 15]
+    - ["Leg Raise", 0, 4, 12]
+- mains:
+    - name: Deadlift
+      training_max: 265
+      e1rm: 335.8
+  assistance:
+    - ["Push Ups", 0, 4, 10]
+    - ["DB Row", 40, 4, 10]
+    - ["Face Pulls", "Yellow", 3, 15]
+    - ["Leg Raise", 0, 4, 12]
+- mains:
+    - name: Press
+      training_max: 85
+      e1rm: 108.0
+  assistance:
+    - ["Lat Raise", 10, 5, 12]
+    - ["Chin Ups", 0, 4, 3]
+    - ["Chin Ups", 0, 1, 4]
+    - ["Face Pulls", "Yellow", 3, 15]
+    - ["Leg Raise", 0, 4, 12]
