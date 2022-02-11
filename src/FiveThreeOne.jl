@@ -385,12 +385,12 @@ function gzcl_t2(training_max, week, order)
     ]
 end
 
-function warmup_percentages(warmup_start, top_set) 
-    percentages = collect(range(warmup_start, top_set, length=6))
-    return percentages[1:5]
+function warmup_percentages(warmup_start, top_set; n_sets=5) 
+    percentages = collect(range(warmup_start, top_set, length=n_sets+1))
+    return percentages[1:n_sets]
 end
 round_to_five_pounds(x) = round(x * .2, RoundNearest) / 0.2
-make_warmup_weights(percentages, training_max) = round_to_five_pounds.(percentages / 100 .* training_max)
+make_warmup_weights(percentages, training_max) = [max(weight, 45) for weight in round_to_five_pounds.(percentages / 100 .* training_max)]
 
 gzcl_spec(pct, reps, sets, is_pr_set=false) = (percentage=pct, reps=Reps(reps, is_pr_set), sets=sets)
 
@@ -430,9 +430,9 @@ function gzcl_the_rippler_t1(training_max, week)
     topset_spec = GZCL_RIPPLER_T1_SPEC[week]
     warmup_set_percentages = warmup_percentages(40, topset_spec.percentage)
     warmup_set_weights = make_warmup_weights(warmup_set_percentages, training_max)
+    warmup_reps = [5, 5, 3, 3, 3]
     topset_weight = make_weight(topset_spec.percentage, training_max)
-    reps = [5, 5, 5, 3, 3]
-    @show sets = make_single_sets(warmup_set_percentages, warmup_set_weights, reps)
+    sets = make_single_sets(warmup_set_percentages, warmup_set_weights, warmup_reps)
     push!(sets, MainLift(topset_spec.percentage, topset_weight, topset_spec.sets, topset_spec.reps))
     return sets
 end
@@ -441,13 +441,13 @@ end
 function gzcl_the_rippler_tm_test(training_max)
     warmup_set_percentages = warmup_percentages(40, 90)
     warmup_set_weights = make_warmup_weights(warmup_set_percentages, training_max)
-    reps = [5, 5, 5, 3, 3]
+    warmup_reps = [5, 5, 3, 3, 3]
     topset_pct = [90, 95, 100]
     topset_weights = make_weights(topset_pct, training_max)
     topset_reps = [3, 2, 1]
     topset_sets = [1, 1, 3]
     topset_ispr = [false, false, true]
-    sets = make_single_sets(warmup_set_percentages, warmup_set_weights, reps)
+    sets = make_single_sets(warmup_set_percentages, warmup_set_weights, warmup_reps)
     return vcat(sets, [
         MainLift(pct, w, s, Reps(r, ispr))
         for (pct, w, s, r, ispr) in zip(
@@ -465,8 +465,13 @@ function gzcl_the_rippler_t2(training_max, week)
         return []
     end
     topset_spec = GZCL_RIPPLER_T2_SPEC[week]
-    weight = make_weight(topset_spec.percentage, training_max)
-    return [MainLift(topset_spec.percentage, weight, topset_spec.sets, topset_spec.reps)]
+    warmup_set_percentages = warmup_percentages(40, topset_spec.percentage; n_sets=2)
+    warmup_set_weights = make_warmup_weights(warmup_set_percentages, training_max)
+    warmup_reps = [5, 5]
+    topset_weight = make_weight(topset_spec.percentage, training_max)
+    sets = make_single_sets(warmup_set_percentages, warmup_set_weights, warmup_reps)
+    push!(sets, MainLift(topset_spec.percentage, topset_weight, topset_spec.sets, topset_spec.reps))
+    return sets
 end
 
 function gzcl_the_rippler_t3(name, weight, week)
