@@ -99,7 +99,6 @@ function make_routine_printer(routine_data, mains_functions, assistance_function
             )
             for routine_day in routine_lifts
         ]
-        @show day_cells
         print_day_cells(
             day_cells,
             print_config[:number_columns],
@@ -177,8 +176,13 @@ function make_main_lift_cell(name, lifts::Vector{MainLift})
     return vmerge(header_cell, lift_details; sep="-")
 end
 
-function make_assistance_cell(lifts::Vector{AssistanceLift})
+function make_assistance_cell(lifts::Union{Vector{AssistanceLift}, Vector{Nothing}})
     header_cell = TextCell(["Assistance"])
+
+    if lifts isa Vector{Nothing}
+        return vmerge(header_cell, TextCell(["NONE"]); sep="-")
+    end
+
     weights = TextCell(vcat(
         ["Weight"],
         [string(lift.weight) for lift in lifts]),
@@ -484,7 +488,7 @@ function gzcl_the_rippler_t3(name, weight, week)
     elseif week in (Week10,)
         sets = 2
     elseif week in (Week11, Week12)
-        return []
+        return nothing
     end
     return AssistanceLift(name, weight, sets, Reps(10, true))
 end

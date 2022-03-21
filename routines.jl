@@ -85,6 +85,16 @@ gzcl_3day_rippler = F.make_routine_printer(
     gzcl_rippler_t3,
 )
 
-gzcl_3day_rippler(F.Week1)
+gzcl_3day_rippler(F.Week5)
 
+F.gzcl_the_rippler_tm_test()
 
+gzcl_rippler_tm_test(data, week) = F.gzcl_the_rippler_tm_test(data.training_max)
+
+gzcl_3day_rippler_tm_test = F.make_routine_printer(
+    rippler_data,
+    [gzcl_rippler_tm_test],
+    (x...) -> nothing,
+)
+
+gzcl_3day_rippler_tm_test(F.Week1)

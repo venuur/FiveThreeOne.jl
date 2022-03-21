@@ -234,7 +234,7 @@ function vmerge(
     return _repeated_merge(vmerge, cells; horizontal_alignment=horizontal_alignment, vertical_alignment=vertical_alignment, sep=sep)
 end
 
-function interleave(cell1::TextCell, cell2::TextCell; horizontal_alignment::HorizontalAlignment=left, vertical_alignment::VerticalAlignment=top)
+function interleave(cell1::TextCell, cell2::TextCell; horizontal_alignment::HorizontalAlignment=left, vertical_alignment::VerticalAlignment=top, sep=nothing)
     max_width = max(cell1.width, cell2.width)
     set_width!(cell1, max_width)
     set_width!(cell2, max_width)
