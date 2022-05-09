@@ -1,6 +1,6 @@
 module TextTable
 
-export TextCell, hmerge, vmerge, interleave, align_left, align_right, align_top, align_bottom, set_width!, set_height!, format_lines, format_text
+export TextCell, hmerge, vmerge, split, interleave, align_left, align_right, align_top, align_bottom, set_width!, set_height!, format_lines, format_text
 
 @enum HorizontalAlignment left right 
 @enum VerticalAlignment top bottom
@@ -73,7 +73,6 @@ mutable struct TextCell
             for content in lines]
         return new(padded_lines, horizontal_alignment, vertical_alignment, height, max_width, 0, 0)
     end
-
 end
 
 function set_height!(cell::TextCell, new_height)
@@ -239,12 +238,22 @@ function interleave(cell1::TextCell, cell2::TextCell; horizontal_alignment::Hori
     set_width!(cell1, max_width)
     set_width!(cell2, max_width)
     max_height = max(length(cell1.lines), length(cell2.lines))
-    new_height = length(cell1.lines) + length(cell2.lines)
+    length1 = length(cell1.lines)
+    length2 = length(cell2.lines)
+    if sep !== nothing
+        n_sep = min(length1, length2)
+        sep_length = length(sep)
+    else
+        n_sep = 0
+        sep_length = 0
+    end
+    new_height = length1+length2+n_sep*sep_length
     new_content = Vector{AbstractString}(undef, new_height)
     cell1_lines = format_lines(cell1)
     cell2_lines = format_lines(cell2)
     i = 1
     j = 1
+    k = 1
     while i <= max_height
         if i <= length(cell1.lines)
             new_content[j] = cell1_lines[i]
@@ -254,9 +263,30 @@ function interleave(cell1::TextCell, cell2::TextCell; horizontal_alignment::Hori
             new_content[j] = cell2_lines[i]
             j += 1
         end
+        if k <= n_sep
+            for s in sep
+                new_content[j] = sep
+                j += 1
+            end
+            k += 1
+        end
         i += 1
     end
     return TextCell(new_content; horizontal_alignment=horizontal_alignment, vertical_alignment=vertical_alignment)
+end
+
+function split(cell::TextCell, index)
+    if index > length(cell.lines)
+        throw(DomainError("Index $index longer than cell length length(cell.lines). Must be les than or equal."))
+    end
+
+    content_lines = format_lines(cell)
+    new_lines1 = content_lines[1:index]
+    new_lines2 = content_lines[index+1:end]
+    return (
+        TextCell(new_lines1; horizontal_alignment=cell.horizontal_alignment, vertical_alignment=cell.vertical_alignment),
+        TextCell(new_lines2; horizontal_alignment=cell.horizontal_alignment, vertical_alignment=cell.vertical_alignment),
+    )
 end
 
 end # module TextTable

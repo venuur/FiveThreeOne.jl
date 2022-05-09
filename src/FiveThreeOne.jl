@@ -111,7 +111,7 @@ function print_day_cells(
     n_columns::Int=length(names),
     row_sep=" ",
     )
-    day_single_cells = [vmerge(cells; sep="=") for cells in day_cells]
+    day_single_cells = [vmerge(cells; sep="  =") for cells in day_cells]
     n_rows = Int(ceil(length(day_cells) / n_columns))
     row_cells = Vector{TextCell}(undef, n_rows)
     groups = [(1+(i-1)*n_columns):i*n_columns for i in 1:n_rows]
@@ -199,9 +199,13 @@ function make_assistance_cell(lifts::Union{Vector{AssistanceLift}, Vector{Nothin
         horizontal_alignment=align_right,
         )
     lift_details = hmerge([weights, sets, reps]; horizontal_alignment=align_right, sep="  ")
+    lift_details_header, lift_details = TextTable.split(lift_details, 1)
     
     names = TextCell([lift.name for lift in lifts])
-    assistance = interleave(lift_details, names; horizontal_alignment=align_right)
+    assistance = vmerge(
+        lift_details_header,
+        interleave(names, lift_details; horizontal_alignment=align_right, sep="  ")
+    )
     return vmerge(header_cell, assistance; sep="-")
 end
 
@@ -209,17 +213,14 @@ make_single_sets(percentages, weights, reps) = collect(map(MainLift, percentages
 function make_single_sets(percentages, weights, reps, e1rm_to_beat)
     collect(map(MainLift, percentages, weights, repeat([1], length(percentages)), reps, repeat([e1rm_to_beat], length(percentages))))
 end
+function make_single_sets_from_weights(topset_weight, weights, reps)
+    percentages = @. 100 * weights / topset_weight 
+    collect(map(MainLift, percentages, weights, repeat([1], length(percentages)), reps, repeat([nothing], length(percentages))))
+end
 round_to_half_pound(x) = round(x * 2, RoundNearest) / 2
 make_weight(percentage, training_max) = round_to_half_pound(percentage / 100 * training_max)
 make_weights(percentages, training_max) = round_to_half_pound.(percentages / 100 .* training_max)
 
-
-function warmup_sets(training_max)
-    percentages = [40, 50, 60]
-    reps = [5,5,3]
-    weights = make_weights(percentages, training_max)
-    return make_single_sets(percentages, weights, reps)
-end
 
 function main_lifts(training_max, week, order, pr_sets, e1rm_to_beat)
     make_pr_reps(reps) = Reps(reps, pr_sets)
@@ -325,6 +326,10 @@ end
 e1rm(weight, reps::Int) = weight * reps * 0.0333 + weight
 e1rm(weight, reps::UnitRange{Int}) = collect(map(x -> e1rm(weight, x), reps))
 e1rm(weight, reps::Reps) = e1rm(weight, reps.number)
+
+
+find_rm(weight_1rm, reps::Int) = weight_1rm / (1 + (reps-1) * 0.0333)
+find_rm(weight_1rm, reps::UnitRange{Int}) = collect(map(x -> find_rm(weight_1rm, x), reps))
 
 struct PRGoal
     reps::Reps
@@ -491,6 +496,115 @@ function gzcl_the_rippler_t3(name, weight, week)
         return nothing
     end
     return AssistanceLift(name, weight, sets, Reps(10, true))
+end
+
+function warmup_sets(top_weight)
+    reps = []
+    weights = []
+    n_sets = Int(ceil(top_weight / 45))
+    weight_breaks = [45, 95, 135, 185, 225, 275, 315]
+    warmup_reps = [10, 5, 3, 3, 2, 1, 1, 1, 1, 1]
+    current_weight = 45
+    current_break = 1
+    for i in 1:n_sets
+        mid_weight = (top_weight + current_weight) / 2
+        if mid_weight < weight_breaks[current_break]
+            current_weight = round_to_five_pounds(mid_weight)
+        else
+            current_weight = weight_breaks[current_break]
+            current_break += 1
+        end
+        push!(reps, warmup_reps[i])
+        push!(weights, current_weight)
+    end
+    return weights, reps
+end
+
+GZCL_J_AND_T_T1_SPEC = Dict(
+    Week1 => (10, gzcl_spec(70, 6, 3, true)),
+    Week2 => (8, gzcl_spec(75, 5, 3, true)),
+    Week3 => (6, gzcl_spec(80, 4, 3, true)),
+    Week4 => (4, gzcl_spec(82.5, 3, 3, true)),
+    Week5 => (2, gzcl_spec(85, 2, 4, true)),
+    Week6 => (1, nothing),
+    Week7 => (6, gzcl_spec(85, 3, 5, true)),
+    Week8 => (4, gzcl_spec(85, 2, 5, true)),
+    Week9 => (2, gzcl_spec(85, 1, 5, true)),
+    Week10 => (5, gzcl_spec(90, 2, 3, true)),
+    Week11 => (3, gzcl_spec(90, 1, 3, true)),
+    Week12 => (1, nothing),
+)
+
+GZCL_J_AND_T_T2_SPEC = Dict(
+    Week1 => gzcl_spec(50, 10, 4),
+    Week2 => gzcl_spec(60, 8, 4),
+    Week3 => gzcl_spec(70, 6, 4),
+    Week4 => gzcl_spec(75, 4, 5),
+    Week5 => gzcl_spec(80, 2, 7),
+    Week6 => nothing,
+    Week7 => gzcl_spec(70, 6, 5),
+    Week8 => gzcl_spec(75, 5, 5),
+    Week9 => gzcl_spec(80, 4, 5),
+    Week10 => gzcl_spec(82.5, 3, 6),
+    Week11 => gzcl_spec(85, 2, 7),
+    Week12 => nothing,
+)
+
+
+GZCL_J_AND_T_T3_REPS = Dict(
+    Week1 => 20,
+    Week2 => 18,
+    Week3 => 16,
+    Week4 => 14,
+    Week5 => 12,
+    Week6 => 10,
+    Week7 => nothing,
+    Week8 => 18,
+    Week9 => 16,
+    Week10 => 14,
+    Week11 => 12,
+    Week12 => nothing,
+)
+
+function gzcl_j_and_t_t1(rep_maxes, tm, week)
+    topset_n_reps, workset_spec = GZCL_J_AND_T_T1_SPEC[week]
+    topset_weight = rep_maxes[topset_n_reps]
+    if week in (Week1, Week2, Week3, Week4, Week5)
+        workset_weight = make_weight(workset_spec.percentage, tm)
+    elseif week in (Week7, Week8, Week9, Week10, Week11)
+        workset_weight = make_weight(workset_spec.percentage, topset_weight)
+    else
+        workset_weight = nothing
+    end
+    warmup_weights, warmup_reps = warmup_sets(topset_weight) 
+    sets = make_single_sets_from_weights(topset_weight, warmup_weights, warmup_reps)
+    push!(sets, MainLift(100, topset_weight, 1, topset_n_reps))
+    if workset_spec !== nothing
+        push!(sets, MainLift(workset_spec.percentage, workset_weight, workset_spec.sets, workset_spec.reps))
+    end
+    return sets
+end
+
+
+function gzcl_j_and_t_t2(tm, week)
+    workset_spec = GZCL_J_AND_T_T2_SPEC[week]
+    if workset_spec === nothing
+        return nothing
+    end
+    workset_weight = make_weight(workset_spec.percentage, tm)
+    warmup_weights, warmup_reps = warmup_sets(workset_weight) 
+    sets = make_single_sets_from_weights(tm, warmup_weights, warmup_reps)
+    push!(sets, MainLift(workset_spec.percentage, workset_weight, workset_spec.sets, workset_spec.reps))
+    return sets
+end
+
+
+function gzcl_j_and_t_t3(name, week)
+    reps = GZCL_J_AND_T_T3_REPS[week]
+    if reps === nothing
+        return nothing
+    end
+    return AssistanceLift(name, "?", 3, Reps(reps, true))
 end
 
 end

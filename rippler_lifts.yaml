@@ -2,14 +2,14 @@
     - [Squat, 235]
     - [Bench, 160]
   assistance:
-    - [DB Row, 45]
-    - [DB Single Leg DL, 10]
+    - [DB Row, 50]
+    - [DB Single Leg DL, 15]
 - mains:
     - [Bench, 180]
     - [Squat, 210]
   assistance:
-    - [BSS, 5]
-    - [Band Lat Pulldown, Bk-Rd-Gn]
+    - [BSS, 10]
+    - [Band Lat Pulldown, Bk-Rd-Gn-Be]
 - mains:
     - [Deadlift, 270]
     - [Press, 85]
