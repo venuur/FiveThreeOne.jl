@@ -1,0 +1,28 @@
+- mains:
+    - [Squat, [252.0, 250.0, 252.5, 240.0, 237.5, 225.0, 210.0, 204.0, 199.0, 193.5], 240]
+    - [Bench, 182.5]
+  assistance:
+    - [Lateral Raises, 20]
+    - [Chin Up, 0]
+    - [Leg Raises, 0]
+- mains:
+    - [Bench, [190.0, 192.5, 192.5, 190.0, 175, 172.5, 158.5, 154.0, 150.0, 146.0], 182.5]
+    - [Squat, 240]
+  assistance:
+    - [Goblet Good Morning, 55]
+    - [Shrugs, 55]
+    - [Hanging Knee Raise, 0]
+- mains:
+    - [Deadlift, [290.0, 290.0, 280, 275, 275.0, 260, 241.5, 235.0, 229.0, 223.0], 280]
+    - [Press, 95]
+  assistance:
+    - [Push Up, 0]
+    - [Curls, 25]
+    - [Plank, 0]
+- mains:
+    - [Press, [100.0, 105.0, 105, 102.5, 100.0, 85.5, 92.5, 81.0, 79.0, 77.0], 95]
+    - [Deadlift, 280]
+  assistance:
+    - [Band Lat Press Down, Bk-Be]
+    - [Hollow Body Hold, 0]
+    - [French Press, 20]

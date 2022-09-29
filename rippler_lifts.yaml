@@ -3,16 +3,22 @@
     - [Bench, 160]
   assistance:
     - [DB Row, 50]
-    - [DB Single Leg DL, 15]
+    - [DB Single Leg DL, 20]
 - mains:
     - [Bench, 180]
     - [Squat, 210]
   assistance:
-    - [BSS, 10]
-    - [Band Lat Pulldown, Bk-Rd-Gn-Be]
+    - [BSS, 15]
+    - [Band Lat Pulldown, Bk-Rd-Gn-Be-Yw]
 - mains:
     - [Deadlift, 270]
     - [Press, 85]
   assistance:
-    - [Face Pulls, Be]
+    - [Face Pulls, Gn]
+    - [Hanging Knee Raises, 0]
+- mains:
+    - [Press, 100]
+    - [Deadlift, 240]
+  assistance:
+    - [Face Pulls, Gn]
     - [Hanging Knee Raises, 0]

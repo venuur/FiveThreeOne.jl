@@ -1,0 +1,18 @@
+- mains:
+    - [Squat, 235]
+    - [Bench, 160]
+  assistance:
+    - [DB Row, 40]
+    - [DB Stiff Leg DL, 50]
+- mains:
+    - [Bench, 180]
+    - [Squat, 210]
+  assistance:
+    - [BSS, 0]
+    - [Band Lat Pulldown, Bk-Rd]
+- mains:
+    - [Deadlift, 270]
+    - [Press, 85]
+  assistance:
+    - [Face Pulls, Yw]
+    - [Leg Raises, 0]

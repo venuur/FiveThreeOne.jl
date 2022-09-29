@@ -415,7 +415,7 @@ GZCL_RIPPLER_T1_SPEC = Dict(
     Week9 => gzcl_spec(95, 2, 3, true),
     Week10 => gzcl_spec(100, 1, 1, true),
     Week11 => gzcl_spec(90, 2, 4, true),
-    # Week 12 is TM test day
+    # Week 12 is 1RM test day
 )
 
 GZCL_RIPPLER_T2_SPEC = Dict(
@@ -471,7 +471,7 @@ end
 
 function gzcl_the_rippler_t2(training_max, week)
     if week in (Week11, Week12)
-        return []
+        return MainLift[]
     end
     topset_spec = GZCL_RIPPLER_T2_SPEC[week]
     warmup_set_percentages = warmup_percentages(40, topset_spec.percentage; n_sets=2)
@@ -498,18 +498,28 @@ function gzcl_the_rippler_t3(name, weight, week)
     return AssistanceLift(name, weight, sets, Reps(10, true))
 end
 
-function warmup_sets(top_weight)
+function warmup_sets(top_weight, top_reps=5)
     reps = []
     weights = []
-    n_sets = Int(ceil(top_weight / 45))
+    n_sets = max(Int(floor(top_weight / 45)), 1)
+    last_set_max_reps = max(Int(floor(top_reps / 2)), 1)
     weight_breaks = [45, 95, 135, 185, 225, 275, 315]
-    warmup_reps = [10, 5, 3, 3, 2, 1, 1, 1, 1, 1]
+    warmup_reps = [
+        [5],
+        [5, 5],
+        [5, 5, 3],
+        [10, 5, 5, 3],
+        [10, 5, 5, 3, 3],
+        [10, 5, 5, 3, 3, 2],
+        [10, 5, 5, 3, 3, 2, 2],
+        [10, 5, 5, 3, 3, 2, 2, 2],
+    ][n_sets]
     current_weight = 45
     current_break = 1
     for i in 1:n_sets
-        mid_weight = (top_weight + current_weight) / 2
+        mid_weight = round_to_five_pounds((top_weight + current_weight) / 2)
         if mid_weight < weight_breaks[current_break]
-            current_weight = round_to_five_pounds(mid_weight)
+            current_weight = mid_weight
         else
             current_weight = weight_breaks[current_break]
             current_break += 1
@@ -587,9 +597,10 @@ end
 
 
 function gzcl_j_and_t_t2(tm, week)
+    # TM is from T1
     workset_spec = GZCL_J_AND_T_T2_SPEC[week]
     if workset_spec === nothing
-        return nothing
+        return MainLift[]
     end
     workset_weight = make_weight(workset_spec.percentage, tm)
     warmup_weights, warmup_reps = warmup_sets(workset_weight) 
@@ -599,12 +610,12 @@ function gzcl_j_and_t_t2(tm, week)
 end
 
 
-function gzcl_j_and_t_t3(name, week)
+function gzcl_j_and_t_t3(name, week, weight)
     reps = GZCL_J_AND_T_T3_REPS[week]
     if reps === nothing
         return nothing
     end
-    return AssistanceLift(name, "?", 3, Reps(reps, true))
+    return AssistanceLift(name, weight, 4, Reps(reps, true))
 end
 
 end

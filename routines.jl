@@ -38,7 +38,8 @@ gzcl_3day_rippler = F.make_routine_printer(
     gzcl_rippler_t3,
 )
 
-gzcl_3day_rippler(F.Week9)
+gzcl_3day_rippler(F.Week12)
+
 
 gzcl_rippler_tm_test(data, week) = F.gzcl_the_rippler_tm_test(data.training_max)
 
@@ -64,8 +65,8 @@ function parse_j_and_t_yaml(yaml_file)
         (
             mains=unpack_mains(day_data["mains"]),
             assistance=[
-                (name=name,)
-                for (name,) in day_data["assistance"]
+                (name=name, weight=weight)
+                for (name, weight) in day_data["assistance"]
             ]
         )
         for day_data in data
@@ -75,9 +76,9 @@ end
 
 gzcl_j_and_t_t1(data, week) = F.gzcl_j_and_t_t1(data.rep_maxes, data.training_max, week)
 gzcl_j_and_t_t2(data, week) = F.gzcl_j_and_t_t2(data.training_max, week)
-gzcl_j_and_t_t3(data, week) = F.gzcl_j_and_t_t3(data.name, week)
+gzcl_j_and_t_t3(data, week) = F.gzcl_j_and_t_t3(data.name, week, data.weight)
 
-j_and_t_data = parse_j_and_t_yaml("jacked_and_tan_lifts.yaml")
+j_and_t_data = parse_j_and_t_yaml("jacked_and_tan_lifts_v1.yaml")
 
 gzcl_3day_j_and_t = F.make_routine_printer(
     j_and_t_data,
@@ -85,4 +86,5 @@ gzcl_3day_j_and_t = F.make_routine_printer(
     gzcl_j_and_t_t3,
 )
 
-gzcl_3day_j_and_t(F.Week1)
+
+gzcl_3day_j_and_t(F.Week10)
